@@ -35,9 +35,9 @@ API_PAK = "https://pkmkb.free.nf/api.php?number={}"
 API_IFSC = "https://ifsc.razorpay.com/{}"
 API_BIN = "https://data.handyapi.com/bin/{}"
 API_NUM = "https://database-sigma-nine.vercel.app/number/{}?api_key=YOUR-PASSWORD"
-API_FAMILY = "https://aadhar-to-fam-chi.vercel.app/?key=FATIMAPSK&id={}"
+API_FAMILY = "https://number8899.vercel.app/?type=family&aadhar={}"
 API_V2NUM = "https://your-v2num-api.com/api?num={}" 
-API_TG = "https://tg-to-num-six.vercel.app/?key=rootxsuryansh&q={}"
+API_TG = "https://username-to-number.vercel.app/?key=my_dayne&q={}"
 
 # 📂 DATABASE
 DATA_FILE = "users_db.json"
