@@ -16,6 +16,7 @@ from flask import Flask
 # ⚙️ SYSTEM CONFIGURATION
 # ==========================================
 
+# 👇 Token Updated 👇
 TOKEN = '8789692969:AAFE7m4pXvJ501TgUhzBg95d4e9OwvQYPrg' 
 OWNER_ID = 8448533037
 
@@ -28,19 +29,22 @@ GROUP_1_LINK = "https://t.me/frexyyEra"
 
 SYSTEM_NAME = "@frexxxy"
 
-# 🚨 API LINKS CONFIGURATION 🚨
-API_AADHAAR = "https://num-info-paid.vercel.app/?num={}&key=ERROR" 
-API_VEHICLE = "https://vehicleinfobyterabaap.vercel.app/lookup?rc={}"
-API_PAK = "https://pkmkb.free.nf/api.php?number={}" 
-API_IFSC = "https://ifsc.razorpay.com/{}"
-API_BIN = "https://data.handyapi.com/bin/{}"
-API_NUM = "https://database-sigma-nine.vercel.app/number/{}?api_key=YOUR-PASSWORD"
-API_FAMILY = "https://number8899.vercel.app/?type=family&aadhar={}"
-API_V2NUM = "https://your-v2num-api.com/api?num={}" 
-API_TG = "https://username-to-number.vercel.app/?key=my_dayne&q={}"
-
 # 📂 DATABASE
 DATA_FILE = "users_db.json"
+CONFIG_FILE = "config.json"
+
+# 🚨 DEFAULT API LINKS (Dynamic Setup) 🚨
+DEFAULT_APIS = {
+    "aadhaar": "https://num-info-paid.vercel.app/?num={}&key=ERROR",
+    "vehicle": "https://vehicleinfobyterabaap.vercel.app/lookup?rc={}",
+    "pak": "https://pkmkb.free.nf/api.php?number={}",
+    "ifsc": "https://ifsc.razorpay.com/{}",
+    "bin": "https://data.handyapi.com/bin/{}",
+    "num": "https://database-sigma-nine.vercel.app/number/{}?api_key=YOUR-PASSWORD",
+    "family": "https://number8899.vercel.app/?type=family&aadhar={}",
+    "v2num": "https://your-v2num-api.com/api?num={}",
+    "tg": "https://username-to-number.vercel.app/?key=my_dayne&q={}"
+}
 
 # ==========================================
 # 🌐 FLASK SERVER (FOR RENDER HOSTING)
@@ -101,7 +105,7 @@ def set_bot_commands():
     bot.set_my_commands(commands)
 
 # ==========================================
-# 💾 DATABASE MANAGEMENT
+# 💾 DATABASE & API MANAGEMENT
 # ==========================================
 def load_db():
     if os.path.exists(DATA_FILE):
@@ -124,6 +128,34 @@ def get_user_data(user_id):
         save_db(db)
     return db, str_id
 
+# Dynamic API functions
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, "r") as f:
+            try: return json.load(f)
+            except: return {}
+    return {}
+
+def save_config(data):
+    try:
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(data, f, indent=4)
+    except: pass
+
+def get_api(api_name):
+    config = load_config()
+    if "apis" not in config:
+        config["apis"] = DEFAULT_APIS
+        save_config(config)
+    return config["apis"].get(api_name, DEFAULT_APIS.get(api_name, ""))
+
+def update_api(api_name, new_url):
+    config = load_config()
+    if "apis" not in config:
+        config["apis"] = DEFAULT_APIS
+    config["apis"][api_name] = new_url
+    save_config(config)
+
 # ==========================================
 # 🔒 SECURITY, MEMBERSHIP & CHAT FILTERS
 # ==========================================
@@ -139,7 +171,6 @@ def check_membership(user_id):
         return False
 
 def is_allowed_chat(chat):
-    # 👇 Yahan change kiya hai: Ab bot kisi bhi group ya private chat me allow hoga 👇
     return True
 
 # 🗑️ MULTI AUTO DELETE 
@@ -286,9 +317,40 @@ def start(message):
     send_welcome_menu(message.chat.id, message.from_user, message.message_id)
 
 # ==========================================
+# 👑 OWNER API MANAGEMENT COMMANDS
+# ==========================================
+@bot.message_handler(commands=['numapi', 'famapi', 'tgapi', 'v2numapi', 'vehapi', 'pakapi', 'aadhaarapi', 'ifscapi', 'binapi'])
+def cmd_set_api(message):
+    if message.from_user.id != OWNER_ID:
+        err = bot.reply_to(message, "❌ **ACCESS DENIED:** You are not the Owner!")
+        schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=10)
+        return
+
+    args = message.text.split(maxsplit=1)
+    if len(args) < 2:
+        err = bot.reply_to(message, "⚠️ **FORMAT:** `/command <API_LINK>`\n*Note:* API Link me `{}` lagana mat bhulna!")
+        schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=15)
+        return
+
+    new_api = args[1].strip()
+    if "{}" not in new_api:
+        err = bot.reply_to(message, "⚠️ **ERROR:** Link me `{}` nahi hai! Bot ko kaise pata chalega ID kahan lagani hai?")
+        schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=15)
+        return
+
+    raw_cmd = args[0].replace('/', '').replace('api', '')
+    key_map = {'fam': 'family', 'veh': 'vehicle'}
+    api_key = key_map.get(raw_cmd, raw_cmd)
+
+    update_api(api_key, new_api)
+    
+    success_msg = bot.reply_to(message, f"✅ **{api_key.upper()} API Updated Successfully!**\n\nNaya Link: `{new_api}`")
+    schedule_delete_multi(message.chat.id, [success_msg.message_id, message.message_id], delay=15)
+
+# ==========================================
 # 🛠️ UNIVERSAL API ENGINE
 # ==========================================
-def handle_api(message, api_url, command_name):
+def handle_api(message, api_key, command_name):
     if not is_allowed_chat(message.chat): return
     
     user_id = message.from_user.id
@@ -303,6 +365,7 @@ def handle_api(message, api_url, command_name):
         return
     
     input_id = args[1].strip()
+    api_url = get_api(api_key)
     
     status_msg = bot.reply_to(message, f"```ini\n[ SEARCHING {command_name.upper()}... ]\n```", parse_mode="Markdown")
     loading_effect(message.chat.id, status_msg.message_id)
@@ -386,31 +449,31 @@ def handle_api(message, api_url, command_name):
 # 🎮 COMMAND HANDLERS
 # ==========================================
 @bot.message_handler(commands=['aadhaar', 'uid'])
-def cmd_aadhaar(m): handle_api(m, API_AADHAAR, "Aadhaar")
+def cmd_aadhaar(m): handle_api(m, "aadhaar", "Aadhaar")
 
 @bot.message_handler(commands=['pak'])
-def cmd_pak(m): handle_api(m, API_PAK, "Pak")
+def cmd_pak(m): handle_api(m, "pak", "Pak")
 
 @bot.message_handler(commands=['vehicle'])
-def cmd_vehicle(m): handle_api(m, API_VEHICLE, "Vehicle")
+def cmd_vehicle(m): handle_api(m, "vehicle", "Vehicle")
 
 @bot.message_handler(commands=['num'])
-def cmd_num(m): handle_api(m, API_NUM, "Number")
+def cmd_num(m): handle_api(m, "num", "Number")
 
 @bot.message_handler(commands=['v2num'])
-def cmd_v2num(m): handle_api(m, API_V2NUM, "V2 Number")
+def cmd_v2num(m): handle_api(m, "v2num", "V2 Number")
 
 @bot.message_handler(commands=['family'])
-def cmd_family(m): handle_api(m, API_FAMILY, "Family")
+def cmd_family(m): handle_api(m, "family", "Family")
 
 @bot.message_handler(commands=['tg', 'telegram'])
-def cmd_tg(m): handle_api(m, API_TG, "Telegram")
+def cmd_tg(m): handle_api(m, "tg", "Telegram")
 
 @bot.message_handler(commands=['ifsc'])
-def cmd_ifsc(m): handle_api(m, API_IFSC, "IFSC")
+def cmd_ifsc(m): handle_api(m, "ifsc", "IFSC")
 
 @bot.message_handler(commands=['bin'])
-def cmd_bin(m): handle_api(m, API_BIN, "BIN")
+def cmd_bin(m): handle_api(m, "bin", "BIN")
 
 @bot.message_handler(commands=['getid'])
 def get_group_id(message):
