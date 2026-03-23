@@ -16,7 +16,7 @@ from flask import Flask
 # ⚙️ SYSTEM CONFIGURATION
 # ==========================================
 
-TOKEN = '8798383938:AAG39HCUnLkf3VtDWKodXo77zOBrZoxtv-k' 
+TOKEN = '8789692969:AAFE7m4pXvJ501TgUhzBg95d4e9OwvQYPrg' 
 OWNER_ID = 8448533037
 
 # 📂 CHANNELS & GROUPS SETUP (REQUIREMENTS)
