@@ -16,7 +16,6 @@ from flask import Flask
 # ⚙️ SYSTEM CONFIGURATION
 # ==========================================
 
-# 👇 Token Updated 👇
 TOKEN = '8789692969:AAFE7m4pXvJ501TgUhzBg95d4e9OwvQYPrg' 
 OWNER_ID = 8448533037
 
@@ -29,9 +28,11 @@ GROUP_1_LINK = "https://t.me/frexyyEra"
 
 SYSTEM_NAME = "@frexxxy"
 
-# 📂 DATABASE
+# 📂 DATABASE FILES
 DATA_FILE = "users_db.json"
 CONFIG_FILE = "config.json"
+GROUPS_FILE = "groups_db.json"   # Ads ke liye groups yahan save honge
+ADS_FILE = "active_ads_db.json"  # Bheje gaye Ads ki history
 
 # 🚨 DEFAULT API LINKS (Dynamic Setup) 🚨
 DEFAULT_APIS = {
@@ -107,54 +108,48 @@ def set_bot_commands():
 # ==========================================
 # 💾 DATABASE & API MANAGEMENT
 # ==========================================
-def load_db():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
+def load_json_file(filename):
+    if os.path.exists(filename):
+        with open(filename, "r") as f:
             try: return json.load(f)
             except: return {}
     return {}
 
-def save_db(data):
+def save_json_file(data, filename):
     try:
-        with open(DATA_FILE, "w") as f:
+        with open(filename, "w") as f:
             json.dump(data, f, indent=4)
     except: pass
 
 def get_user_data(user_id):
-    db = load_db()
+    db = load_json_file(DATA_FILE)
     str_id = str(user_id)
     if str_id not in db:
         db[str_id] = {"joined_date": datetime.now().strftime("%Y-%m-%d"), "rank": "User"}
-        save_db(db)
+        save_json_file(db, DATA_FILE)
     return db, str_id
 
-# Dynamic API functions
-def load_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "r") as f:
-            try: return json.load(f)
-            except: return {}
-    return {}
-
-def save_config(data):
-    try:
-        with open(CONFIG_FILE, "w") as f:
-            json.dump(data, f, indent=4)
-    except: pass
-
 def get_api(api_name):
-    config = load_config()
+    config = load_json_file(CONFIG_FILE)
     if "apis" not in config:
         config["apis"] = DEFAULT_APIS
-        save_config(config)
+        save_json_file(config, CONFIG_FILE)
     return config["apis"].get(api_name, DEFAULT_APIS.get(api_name, ""))
 
 def update_api(api_name, new_url):
-    config = load_config()
+    config = load_json_file(CONFIG_FILE)
     if "apis" not in config:
         config["apis"] = DEFAULT_APIS
     config["apis"][api_name] = new_url
-    save_config(config)
+    save_json_file(config, CONFIG_FILE)
+
+# Track Groups automatically
+def track_group(chat_id):
+    if str(chat_id).startswith('-'): # Sirf Groups track honge
+        db = load_json_file(GROUPS_FILE)
+        if str(chat_id) not in db:
+            db[str(chat_id)] = True
+            save_json_file(db, GROUPS_FILE)
 
 # ==========================================
 # 🔒 SECURITY, MEMBERSHIP & CHAT FILTERS
@@ -171,7 +166,7 @@ def check_membership(user_id):
         return False
 
 def is_allowed_chat(chat):
-    return True
+    return True # Allow anywhere
 
 # 🗑️ MULTI AUTO DELETE 
 def schedule_delete_multi(chat_id, message_ids_list, delay=15):
@@ -271,31 +266,26 @@ def format_professional_data(data):
     def flatten(item, depth=0):
         res = ""
         space = "  " * depth
-        
         if isinstance(item, dict):
             for key in ordered_keys:
                 actual_key = next((k for k in item.keys() if str(k).lower() == key), None)
                 if actual_key and item[actual_key] not in [None, "", []]:
                     res += f"{space}{str(actual_key).upper().ljust(15)} : {item[actual_key]}\n"
-            
             for k, v in item.items():
                 key_lower = str(k).lower()
                 if key_lower in ordered_keys or key_lower in ['status', 'count', 'search time', 'success', 'error', 'developer', 'message', 'api_key', 'cached']:
                     continue
-                
                 if isinstance(v, (dict, list)) and len(v) > 0:
                     res += f"\n{space}▼ {str(k).upper()} ▼\n"
                     res += flatten(v, depth + 1)
                 elif v not in [None, "", []]:
                     res += f"{space}{str(k).upper().ljust(15)} : {v}\n"
-        
         elif isinstance(item, list):
             for i, val in enumerate(item, 1):
                 res += f"\n{space}--- [ RECORD {i} ] ---\n"
                 res += flatten(val, depth)
         else:
             res += f"{space}{item}\n"
-            
         return res
 
     out = flatten(data)
@@ -307,6 +297,7 @@ def format_professional_data(data):
 # ==========================================
 @bot.message_handler(commands=['start'])
 def start(message):
+    track_group(message.chat.id)
     if not is_allowed_chat(message.chat): return
     
     user_id = message.from_user.id
@@ -317,8 +308,10 @@ def start(message):
     send_welcome_menu(message.chat.id, message.from_user, message.message_id)
 
 # ==========================================
-# 👑 OWNER API MANAGEMENT COMMANDS
+# 👑 OWNER COMMANDS (API & ADS)
 # ==========================================
+
+# 1. API Update Command
 @bot.message_handler(commands=['numapi', 'famapi', 'tgapi', 'v2numapi', 'vehapi', 'pakapi', 'aadhaarapi', 'ifscapi', 'binapi'])
 def cmd_set_api(message):
     if message.from_user.id != OWNER_ID:
@@ -343,14 +336,69 @@ def cmd_set_api(message):
     api_key = key_map.get(raw_cmd, raw_cmd)
 
     update_api(api_key, new_api)
-    
     success_msg = bot.reply_to(message, f"✅ **{api_key.upper()} API Updated Successfully!**\n\nNaya Link: `{new_api}`")
     schedule_delete_multi(message.chat.id, [success_msg.message_id, message.message_id], delay=15)
+
+# 2. Ads Broadcast Command
+@bot.message_handler(commands=['ads'])
+def cmd_ads(message):
+    if message.from_user.id != OWNER_ID: return
+    
+    args = message.text.split(maxsplit=1)
+    if len(args) < 2:
+        err = bot.reply_to(message, "⚠️ **Usage:** `/ads <aapka ad message>`")
+        schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=15)
+        return
+        
+    ad_text = args[1]
+    groups = load_json_file(GROUPS_FILE)
+    active_ads = load_json_file(ADS_FILE)
+    
+    status = bot.reply_to(message, "🚀 **Ad sabhi groups me bhejna shuru kar raha hu...**")
+    
+    def send_ads():
+        count = 0
+        for gid in groups.keys():
+            try:
+                msg = bot.send_message(gid, ad_text, parse_mode="Markdown")
+                active_ads[gid] = msg.message_id
+                count += 1
+                time.sleep(0.3) # Flood limits bachane ke liye
+            except Exception: pass
+        save_json_file(active_ads, ADS_FILE)
+        bot.edit_message_text(f"✅ **Ads Sent Successfully!**\nTotal Groups: `{count}`", message.chat.id, status.message_id)
+        schedule_delete_multi(message.chat.id, [status.message_id, message.message_id], delay=15)
+
+    threading.Thread(target=send_ads).start()
+
+# 3. Ads Delete Command
+@bot.message_handler(commands=['adsdelete'])
+def cmd_adsdelete(message):
+    if message.from_user.id != OWNER_ID: return
+    
+    active_ads = load_json_file(ADS_FILE)
+    status = bot.reply_to(message, "🗑️ **Sabhi groups se ads delete kar raha hu...**")
+    
+    def delete_ads():
+        count = 0
+        for gid, msg_id in active_ads.items():
+            try:
+                bot.delete_message(gid, msg_id)
+                count += 1
+                time.sleep(0.2)
+            except Exception: pass
+        save_json_file({}, ADS_FILE)
+        bot.edit_message_text(f"🗑️ **Clean Sweep Done!**\nDeleted ads from `{count}` groups.", message.chat.id, status.message_id)
+        schedule_delete_multi(message.chat.id, [status.message_id, message.message_id], delay=15)
+        
+    threading.Thread(target=delete_ads).start()
+
 
 # ==========================================
 # 🛠️ UNIVERSAL API ENGINE
 # ==========================================
 def handle_api(message, api_key, command_name):
+    track_group(message.chat.id)
     if not is_allowed_chat(message.chat): return
     
     user_id = message.from_user.id
