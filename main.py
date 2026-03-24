@@ -19,7 +19,6 @@ from flask import Flask
 TOKEN = '8789692969:AAFE7m4pXvJ501TgUhzBg95d4e9OwvQYPrg' 
 OWNER_ID = 8448533037
 
-# 📂 CHANNELS & GROUPS SETUP (REQUIREMENTS)
 REQ_CHANNEL = "@frexyy_Era"
 REQ_GROUP_1 = "@frexyyEra"
 
@@ -74,34 +73,33 @@ session.mount('https://', adapter)
 
 def get_random_headers():
     user_agents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
     ]
     return {
         'User-Agent': random.choice(user_agents),
-        'Accept': 'text/html,application/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept': 'text/html,application/json,application/xhtml+xml',
         'Connection': 'keep-alive'
     }
 
 try:
     bot = telebot.TeleBot(TOKEN, parse_mode="Markdown")
 except Exception as e:
-    print(f"❌ Critical Token Error: {e}")
+    print(f"❌ Token Error: {e}")
     exit()
 
 def set_bot_commands():
     commands = [
-        telebot.types.BotCommand("start", "Start Bot & See Menu"),
-        telebot.types.BotCommand("aadhaar", "Aadhaar Info"),
-        telebot.types.BotCommand("pak", "Pak Number Info"),
-        telebot.types.BotCommand("vehicle", "Vehicle Info"),
+        telebot.types.BotCommand("start", "Premium Start Menu"),
         telebot.types.BotCommand("num", "Number Info"),
-        telebot.types.BotCommand("v2num", "V2 Number Info"),
         telebot.types.BotCommand("family", "Family Info"),
-        telebot.types.BotCommand("tg", "Telegram User Info"),
-        telebot.types.BotCommand("ifsc", "Bank IFSC Info"),
-        telebot.types.BotCommand("bin", "Card BIN Info")
+        telebot.types.BotCommand("tg", "Telegram Info"),
+        telebot.types.BotCommand("vehicle", "Vehicle Info"),
+        telebot.types.BotCommand("aadhaar", "Aadhaar Info"),
+        telebot.types.BotCommand("pak", "Pak Info"),
+        telebot.types.BotCommand("v2num", "V2 Number Info"),
+        telebot.types.BotCommand("ifsc", "IFSC Info"),
+        telebot.types.BotCommand("bin", "BIN Info")
     ]
     bot.set_my_commands(commands)
 
@@ -151,7 +149,7 @@ def track_group(chat_id):
             save_json_file(db, GROUPS_FILE)
 
 # ==========================================
-# 🔒 SECURITY, MEMBERSHIP & CHAT FILTERS
+# 🔒 SECURITY, MEMBERSHIP & FILTERS
 # ==========================================
 def check_membership(user_id):
     try:
@@ -161,7 +159,7 @@ def check_membership(user_id):
         if c1.status in valid and g1.status in valid:
             return True
         return False
-    except Exception as e:
+    except Exception:
         return False
 
 def is_allowed_chat(chat):
@@ -189,22 +187,27 @@ def send_force_join(chat_id, message_id):
 def send_welcome_menu(chat_id, user, user_msg_id=None):
     get_user_data(user.id)
     name = user.first_name
+    
+    # 👇 NAYA PREMIUM VIP MENU 👇
     id_card = (
-        f"💳 **WELCOME USER**\n"
-        f"╔══════════════════════╗\n"
-        f"║ 👤 **NAME:** `{name}`\n"
-        f"║ 🆔 **ID:** `{user.id}`\n"
-        f"╚══════════════════════╝\n\n"
-        f"🤖 **COMMANDS:**\n"
-        f"👉 `/aadhaar 1234xxxx` - Aadhaar Info\n"
-        f"👉 `/pak 0300xxxx` - Pak Info\n"
-        f"👉 `/vehicle MH01xxxx` - Vehicle Info\n"
-        f"👉 `/num 98xxxxxxxx` - Number Info\n"
-        f"👉 `/v2num 98xxxxxxxx` - V2 Number Info\n"
-        f"👉 `/family 1234xxxx` - Family Info\n"
-        f"👉 `/tg @username` - Telegram Info\n"
-        f"👉 `/ifsc SBIN0xxxx` - Bank IFSC Info\n"
-        f"👉 `/bin 531xxxx` - Card BIN Info"
+        f"💎 𝐏𝐑𝐄𝐌𝐈𝐔𝐌 𝐈𝐍𝐅𝐎 𝐆𝐀𝐓𝐄𝐖𝐀𝐘 💎\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"👤 𝐔𝐬𝐞𝐫 : `{name}`\n"
+        f"🆔 𝐈𝐃   : `{user.id}`\n"
+        f"🎖️ 𝐑𝐚𝐧𝐤 : `VIP Member`\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"⚙️ 𝐌𝐀𝐈𝐍 𝐂𝐎𝐌𝐌𝐀𝐍𝐃𝐒:\n"
+        f"├ 📱 `/num` `[Number]` ➾ Get Number Details\n"
+        f"├ 👨‍👩‍👧 `/family` `[Aadhar]` ➾ Get Family Details\n"
+        f"├ ✈️ `/tg` `[@Username]` ➾ Get Telegram Info\n"
+        f"├ 🚙 `/vehicle` `[RC]` ➾ Get Vehicle Info\n"
+        f"├ 💳 `/aadhaar` `[UID]` ➾ Get Aadhaar Info\n"
+        f"├ 🇵🇰 `/pak` `[Number]` ➾ Pak Number Info\n"
+        f"├ 🏦 `/ifsc` `[IFSC]` ➾ Bank Details\n"
+        f"├ 💳 `/bin` `[BIN]` ➾ Card Details\n"
+        f"└ ♻️ `/v2num` `[Number]` ➾ V2 DB Search\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"⚡ 𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 : {SYSTEM_NAME}"
     )
     sent_msg = bot.send_message(chat_id, id_card, parse_mode="Markdown")
     schedule_delete_multi(chat_id, [sent_msg.message_id, user_msg_id], delay=30)
@@ -249,18 +252,11 @@ def format_professional_data(data):
     if isinstance(data, dict):
         if "FULL_DETAILS" in data and isinstance(data["FULL_DETAILS"], dict):
             api1 = data["FULL_DETAILS"].get("api_1", {})
-            if "result" in api1 and isinstance(api1["result"], list):
-                data = api1["result"]
-        elif "data" in data and isinstance(data["data"], (list, dict)):
-            data = data["data"]
-        elif "result" in data and isinstance(data["result"], (list, dict)):
-            data = data["result"]
+            if "result" in api1 and isinstance(api1["result"], list): data = api1["result"]
+        elif "data" in data and isinstance(data["data"], (list, dict)): data = data["data"]
+        elif "result" in data and isinstance(data["result"], (list, dict)): data = data["result"]
 
-    ordered_keys = [
-        "name", "username", "membername", "fname", "fathername", "mobile", "phone", 
-        "alt", "circle", "state", "email", "id", "rcid", "uid", 
-        "ration_card_no", "address", "relationship_name"
-    ]
+    ordered_keys = ["name", "username", "membername", "fname", "fathername", "mobile", "phone", "alt", "circle", "state", "email", "id", "rcid", "uid", "ration_card_no", "address", "relationship_name"]
     
     def flatten(item, depth=0):
         res = ""
@@ -272,19 +268,13 @@ def format_professional_data(data):
                     res += f"{space}{str(actual_key).upper().ljust(15)} : {item[actual_key]}\n"
             for k, v in item.items():
                 key_lower = str(k).lower()
-                if key_lower in ordered_keys or key_lower in ['status', 'count', 'search time', 'success', 'error', 'developer', 'message', 'api_key', 'cached']:
-                    continue
+                if key_lower in ordered_keys or key_lower in ['status', 'count', 'search time', 'success', 'error', 'developer', 'message', 'api_key', 'cached']: continue
                 if isinstance(v, (dict, list)) and len(v) > 0:
-                    res += f"\n{space}▼ {str(k).upper()} ▼\n"
-                    res += flatten(v, depth + 1)
-                elif v not in [None, "", []]:
-                    res += f"{space}{str(k).upper().ljust(15)} : {v}\n"
+                    res += f"\n{space}▼ {str(k).upper()} ▼\n{flatten(v, depth + 1)}"
+                elif v not in [None, "", []]: res += f"{space}{str(k).upper().ljust(15)} : {v}\n"
         elif isinstance(item, list):
-            for i, val in enumerate(item, 1):
-                res += f"\n{space}--- [ RECORD {i} ] ---\n"
-                res += flatten(val, depth)
-        else:
-            res += f"{space}{item}\n"
+            for i, val in enumerate(item, 1): res += f"\n{space}--- [ RECORD {i} ] ---\n{flatten(val, depth)}"
+        else: res += f"{space}{item}\n"
         return res
 
     out = flatten(data)
@@ -292,10 +282,11 @@ def format_professional_data(data):
     return out.strip()
 
 # ==========================================
-# 📢 VIP ADS BROADCAST ENGINE
+# 📢 VIP ADS BROADCAST ENGINE 
 # ==========================================
 @bot.message_handler(commands=['ads'])
 def cmd_ads_start(message):
+    track_group(message.chat.id)
     if message.from_user.id != OWNER_ID: return
     msg = bot.reply_to(message, "📢 **VIP AD BROADCAST SYSTEM**\n\n📝 Kripya apna Ad message bhejiye jo aap sabhi groups me chalana chahte hain.\n*(Aap links aur formatting use kar sakte hain)*")
     bot.register_next_step_handler(msg, process_ad_broadcast)
@@ -303,6 +294,9 @@ def cmd_ads_start(message):
 def process_ad_broadcast(message):
     ad_text = message.text
     groups = load_json_file(GROUPS_FILE)
+    if not groups:
+        return bot.reply_to(message, "❌ Abhi tak bot kisi group me save nahi hua hai. Pehle bot ko groups me add karo aur usme koi command chalao.")
+
     broadcast_id = str(int(time.time()))
     status_msg = bot.reply_to(message, "🚀 **Broadcasting Ads... Please wait.**")
     
@@ -314,7 +308,7 @@ def process_ad_broadcast(message):
             sent_messages[gid] = sent.message_id
             success_count += 1
             time.sleep(0.3)
-        except: pass
+        except Exception: pass
             
     active_ads = load_json_file(ADS_FILE)
     active_ads[broadcast_id] = sent_messages
@@ -383,12 +377,10 @@ def scheduled_ad_delete(b_id, delay, chat_id, msg_id):
 def start(message):
     track_group(message.chat.id)
     if not is_allowed_chat(message.chat): return
-    
     user_id = message.from_user.id
     if not check_membership(user_id):
         send_force_join(message.chat.id, message.message_id)
         return
-
     send_welcome_menu(message.chat.id, message.from_user, message.message_id)
 
 # ==========================================
@@ -396,6 +388,7 @@ def start(message):
 # ==========================================
 @bot.message_handler(commands=['numapi', 'famapi', 'tgapi', 'v2numapi', 'vehapi', 'pakapi', 'aadhaarapi', 'ifscapi', 'binapi'])
 def cmd_set_api(message):
+    track_group(message.chat.id)
     if message.from_user.id != OWNER_ID:
         err = bot.reply_to(message, "❌ **ACCESS DENIED:** You are not the Owner!")
         schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=10)
@@ -556,6 +549,12 @@ def get_group_id(message):
         bot.reply_to(message, f"The ID of this chat is: `{message.chat.id}`\nType: {message.chat.type}")
     else:
         bot.reply_to(message, "You are not authorized to use this command.")
+
+# 🔥 GROUP TRACKER (Catches any text to ensure group is saved) 🔥
+@bot.message_handler(content_types=['text', 'new_chat_members', 'left_chat_member'])
+def background_tracker(message):
+    if message.chat.type in ['group', 'supergroup']:
+        track_group(message.chat.id)
 
 # ==========================================
 # 🔥 MAIN LOOP
