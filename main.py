@@ -31,8 +31,8 @@ SYSTEM_NAME = "@frexxxy"
 # 📂 DATABASE FILES
 DATA_FILE = "users_db.json"
 CONFIG_FILE = "config.json"
-GROUPS_FILE = "groups_db.json"   # Ads ke liye groups yahan save honge
-ADS_FILE = "active_ads_db.json"  # Bheje gaye Ads ki history
+GROUPS_FILE = "groups_db.json"   
+ADS_FILE = "active_ads_db.json"  
 
 # 🚨 DEFAULT API LINKS (Dynamic Setup) 🚨
 DEFAULT_APIS = {
@@ -143,9 +143,8 @@ def update_api(api_name, new_url):
     config["apis"][api_name] = new_url
     save_json_file(config, CONFIG_FILE)
 
-# Track Groups automatically
 def track_group(chat_id):
-    if str(chat_id).startswith('-'): # Sirf Groups track honge
+    if str(chat_id).startswith('-'):
         db = load_json_file(GROUPS_FILE)
         if str(chat_id) not in db:
             db[str(chat_id)] = True
@@ -166,7 +165,7 @@ def check_membership(user_id):
         return False
 
 def is_allowed_chat(chat):
-    return True # Allow anywhere
+    return True
 
 # 🗑️ MULTI AUTO DELETE 
 def schedule_delete_multi(chat_id, message_ids_list, delay=15):
@@ -293,6 +292,91 @@ def format_professional_data(data):
     return out.strip()
 
 # ==========================================
+# 📢 VIP ADS BROADCAST ENGINE
+# ==========================================
+@bot.message_handler(commands=['ads'])
+def cmd_ads_start(message):
+    if message.from_user.id != OWNER_ID: return
+    msg = bot.reply_to(message, "📢 **VIP AD BROADCAST SYSTEM**\n\n📝 Kripya apna Ad message bhejiye jo aap sabhi groups me chalana chahte hain.\n*(Aap links aur formatting use kar sakte hain)*")
+    bot.register_next_step_handler(msg, process_ad_broadcast)
+
+def process_ad_broadcast(message):
+    ad_text = message.text
+    groups = load_json_file(GROUPS_FILE)
+    broadcast_id = str(int(time.time()))
+    status_msg = bot.reply_to(message, "🚀 **Broadcasting Ads... Please wait.**")
+    
+    success_count = 0
+    sent_messages = {} 
+    for gid in groups.keys():
+        try:
+            sent = bot.send_message(gid, ad_text, parse_mode="Markdown", disable_web_page_preview=True)
+            sent_messages[gid] = sent.message_id
+            success_count += 1
+            time.sleep(0.3)
+        except: pass
+            
+    active_ads = load_json_file(ADS_FILE)
+    active_ads[broadcast_id] = sent_messages
+    save_json_file(active_ads, ADS_FILE)
+    
+    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+    btn_del = telebot.types.InlineKeyboardButton("🗑 Force Delete Now", callback_data=f"adact_del_{broadcast_id}")
+    btn_5m = telebot.types.InlineKeyboardButton("⏳ 5 Min", callback_data=f"adact_time_{broadcast_id}_300")
+    btn_30m = telebot.types.InlineKeyboardButton("⏳ 30 Min", callback_data=f"adact_time_{broadcast_id}_1800")
+    btn_1h = telebot.types.InlineKeyboardButton("⏳ 1 Hour", callback_data=f"adact_time_{broadcast_id}_3600")
+    markup.add(btn_5m, btn_30m, btn_1h)
+    markup.add(btn_del)
+    
+    panel_text = f"✅ **Broadcast Complete!**\n\n📊 **Stats:** Successfully sent to `{success_count}` groups.\n\n⚙️ **Control Panel:** Niche diye gaye buttons se Ad ka Timer set karein ya Delete karein:"
+    bot.edit_message_text(panel_text, chat_id=message.chat.id, message_id=status_msg.message_id, reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('adact_'))
+def ad_control_callback(call):
+    if call.from_user.id != OWNER_ID:
+        return bot.answer_callback_query(call.id, "Access Denied!", show_alert=True)
+        
+    data = call.data.split('_')
+    action = data[1]
+    b_id = data[2]
+    
+    active_ads = load_json_file(ADS_FILE)
+    if b_id not in active_ads:
+        return bot.answer_callback_query(call.id, "Ad already deleted or expired!", show_alert=True)
+        
+    if action == "del":
+        bot.answer_callback_query(call.id, "Deleting ads from all groups...")
+        delete_broadcast(b_id, active_ads)
+        bot.edit_message_text(f"🗑 **Ads Deleted!**\nYe ad sabhi groups se hamesha ke liye hata di gayi hai.", call.message.chat.id, call.message.message_id)
+        
+    elif action == "time":
+        seconds = int(data[3])
+        mins = seconds // 60
+        bot.answer_callback_query(call.id, f"Timer set for {mins} minutes.")
+        
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(telebot.types.InlineKeyboardButton("🗑 Force Delete Now", callback_data=f"adact_del_{b_id}"))
+        bot.edit_message_text(f"⏳ **Timer Active!**\nYe ad `{mins} minutes` me sabhi groups se auto-delete ho jayegi.\n\n(Agar abhi delete karna hai to niche click karein)", call.message.chat.id, call.message.message_id, reply_markup=markup)
+        threading.Thread(target=scheduled_ad_delete, args=(b_id, seconds, call.message.chat.id, call.message.message_id)).start()
+
+def delete_broadcast(b_id, active_ads_db):
+    targets = active_ads_db.get(b_id, {})
+    for gid, mid in targets.items():
+        try: bot.delete_message(gid, mid)
+        except: pass
+    if b_id in active_ads_db:
+        del active_ads_db[b_id]
+        save_json_file(active_ads_db, ADS_FILE)
+
+def scheduled_ad_delete(b_id, delay, chat_id, msg_id):
+    time.sleep(delay)
+    active_ads = load_json_file(ADS_FILE)
+    if b_id in active_ads:
+        delete_broadcast(b_id, active_ads)
+        try: bot.edit_message_text(f"⏳ **Timer Finished!**\nAd automatically sabhi groups se delete ho chuki hai.", chat_id, msg_id)
+        except: pass
+
+# ==========================================
 # 🚀 START COMMAND
 # ==========================================
 @bot.message_handler(commands=['start'])
@@ -308,10 +392,8 @@ def start(message):
     send_welcome_menu(message.chat.id, message.from_user, message.message_id)
 
 # ==========================================
-# 👑 OWNER COMMANDS (API & ADS)
+# 👑 OWNER API MANAGEMENT COMMANDS
 # ==========================================
-
-# 1. API Update Command
 @bot.message_handler(commands=['numapi', 'famapi', 'tgapi', 'v2numapi', 'vehapi', 'pakapi', 'aadhaarapi', 'ifscapi', 'binapi'])
 def cmd_set_api(message):
     if message.from_user.id != OWNER_ID:
@@ -338,61 +420,6 @@ def cmd_set_api(message):
     update_api(api_key, new_api)
     success_msg = bot.reply_to(message, f"✅ **{api_key.upper()} API Updated Successfully!**\n\nNaya Link: `{new_api}`")
     schedule_delete_multi(message.chat.id, [success_msg.message_id, message.message_id], delay=15)
-
-# 2. Ads Broadcast Command
-@bot.message_handler(commands=['ads'])
-def cmd_ads(message):
-    if message.from_user.id != OWNER_ID: return
-    
-    args = message.text.split(maxsplit=1)
-    if len(args) < 2:
-        err = bot.reply_to(message, "⚠️ **Usage:** `/ads <aapka ad message>`")
-        schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=15)
-        return
-        
-    ad_text = args[1]
-    groups = load_json_file(GROUPS_FILE)
-    active_ads = load_json_file(ADS_FILE)
-    
-    status = bot.reply_to(message, "🚀 **Ad sabhi groups me bhejna shuru kar raha hu...**")
-    
-    def send_ads():
-        count = 0
-        for gid in groups.keys():
-            try:
-                msg = bot.send_message(gid, ad_text, parse_mode="Markdown")
-                active_ads[gid] = msg.message_id
-                count += 1
-                time.sleep(0.3) # Flood limits bachane ke liye
-            except Exception: pass
-        save_json_file(active_ads, ADS_FILE)
-        bot.edit_message_text(f"✅ **Ads Sent Successfully!**\nTotal Groups: `{count}`", message.chat.id, status.message_id)
-        schedule_delete_multi(message.chat.id, [status.message_id, message.message_id], delay=15)
-
-    threading.Thread(target=send_ads).start()
-
-# 3. Ads Delete Command
-@bot.message_handler(commands=['adsdelete'])
-def cmd_adsdelete(message):
-    if message.from_user.id != OWNER_ID: return
-    
-    active_ads = load_json_file(ADS_FILE)
-    status = bot.reply_to(message, "🗑️ **Sabhi groups se ads delete kar raha hu...**")
-    
-    def delete_ads():
-        count = 0
-        for gid, msg_id in active_ads.items():
-            try:
-                bot.delete_message(gid, msg_id)
-                count += 1
-                time.sleep(0.2)
-            except Exception: pass
-        save_json_file({}, ADS_FILE)
-        bot.edit_message_text(f"🗑️ **Clean Sweep Done!**\nDeleted ads from `{count}` groups.", message.chat.id, status.message_id)
-        schedule_delete_multi(message.chat.id, [status.message_id, message.message_id], delay=15)
-        
-    threading.Thread(target=delete_ads).start()
-
 
 # ==========================================
 # 🛠️ UNIVERSAL API ENGINE
