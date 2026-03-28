@@ -19,6 +19,7 @@ from flask import Flask
 TOKEN = '8789692969:AAFE7m4pXvJ501TgUhzBg95d4e9OwvQYPrg' 
 OWNER_ID = 8448533037
 
+# 📂 CHANNELS & GROUPS SETUP (REQUIREMENTS)
 REQ_CHANNEL = "@frexyy_Era"
 REQ_GROUP_1 = "@frexyyEra"
 
@@ -73,19 +74,20 @@ session.mount('https://', adapter)
 
 def get_random_headers():
     user_agents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     ]
     return {
         'User-Agent': random.choice(user_agents),
-        'Accept': 'text/html,application/json,application/xhtml+xml',
+        'Accept': 'text/html,application/json,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
         'Connection': 'keep-alive'
     }
 
 try:
     bot = telebot.TeleBot(TOKEN, parse_mode="Markdown")
 except Exception as e:
-    print(f"❌ Token Error: {e}")
+    print(f"❌ Critical Token Error: {e}")
     exit()
 
 def set_bot_commands():
@@ -94,6 +96,7 @@ def set_bot_commands():
         telebot.types.BotCommand("num", "Number Info"),
         telebot.types.BotCommand("family", "Family Info"),
         telebot.types.BotCommand("tg", "Telegram Info"),
+        telebot.types.BotCommand("chat", "Get Chat ID from Username"), # NAYA COMMAND ADD HUA
         telebot.types.BotCommand("vehicle", "Vehicle Info"),
         telebot.types.BotCommand("aadhaar", "Aadhaar Info"),
         telebot.types.BotCommand("pak", "Pak Info"),
@@ -149,7 +152,7 @@ def track_group(chat_id):
             save_json_file(db, GROUPS_FILE)
 
 # ==========================================
-# 🔒 SECURITY, MEMBERSHIP & FILTERS
+# 🔒 SECURITY, MEMBERSHIP & CHAT FILTERS
 # ==========================================
 def check_membership(user_id):
     try:
@@ -159,7 +162,7 @@ def check_membership(user_id):
         if c1.status in valid and g1.status in valid:
             return True
         return False
-    except Exception:
+    except Exception as e:
         return False
 
 def is_allowed_chat(chat):
@@ -188,7 +191,6 @@ def send_welcome_menu(chat_id, user, user_msg_id=None):
     get_user_data(user.id)
     name = user.first_name
     
-    # 👇 NAYA PREMIUM VIP MENU 👇
     id_card = (
         f"💎 𝐏𝐑𝐄𝐌𝐈𝐔𝐌 𝐈𝐍𝐅𝐎 𝐆𝐀𝐓𝐄𝐖𝐀𝐘 💎\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -200,6 +202,7 @@ def send_welcome_menu(chat_id, user, user_msg_id=None):
         f"├ 📱 `/num` `[Number]` ➾ Get Number Details\n"
         f"├ 👨‍👩‍👧 `/family` `[Aadhar]` ➾ Get Family Details\n"
         f"├ ✈️ `/tg` `[@Username]` ➾ Get Telegram Info\n"
+        f"├ 💬 `/chat` `[@Username]` ➾ Get Chat ID\n" # 👇 MENU ME ADD HUA 👇
         f"├ 🚙 `/vehicle` `[RC]` ➾ Get Vehicle Info\n"
         f"├ 💳 `/aadhaar` `[UID]` ➾ Get Aadhaar Info\n"
         f"├ 🇵🇰 `/pak` `[Number]` ➾ Pak Number Info\n"
@@ -252,11 +255,18 @@ def format_professional_data(data):
     if isinstance(data, dict):
         if "FULL_DETAILS" in data and isinstance(data["FULL_DETAILS"], dict):
             api1 = data["FULL_DETAILS"].get("api_1", {})
-            if "result" in api1 and isinstance(api1["result"], list): data = api1["result"]
-        elif "data" in data and isinstance(data["data"], (list, dict)): data = data["data"]
-        elif "result" in data and isinstance(data["result"], (list, dict)): data = data["result"]
+            if "result" in api1 and isinstance(api1["result"], list):
+                data = api1["result"]
+        elif "data" in data and isinstance(data["data"], (list, dict)):
+            data = data["data"]
+        elif "result" in data and isinstance(data["result"], (list, dict)):
+            data = data["result"]
 
-    ordered_keys = ["name", "username", "membername", "fname", "fathername", "mobile", "phone", "alt", "circle", "state", "email", "id", "rcid", "uid", "ration_card_no", "address", "relationship_name"]
+    ordered_keys = [
+        "name", "username", "membername", "fname", "fathername", "mobile", "phone", 
+        "alt", "circle", "state", "email", "id", "rcid", "uid", 
+        "ration_card_no", "address", "relationship_name"
+    ]
     
     def flatten(item, depth=0):
         res = ""
@@ -268,13 +278,17 @@ def format_professional_data(data):
                     res += f"{space}{str(actual_key).upper().ljust(15)} : {item[actual_key]}\n"
             for k, v in item.items():
                 key_lower = str(k).lower()
-                if key_lower in ordered_keys or key_lower in ['status', 'count', 'search time', 'success', 'error', 'developer', 'message', 'api_key', 'cached']: continue
+                if key_lower in ordered_keys or key_lower in ['status', 'count', 'search time', 'success', 'error', 'developer', 'message', 'api_key', 'cached']:
+                    continue
                 if isinstance(v, (dict, list)) and len(v) > 0:
                     res += f"\n{space}▼ {str(k).upper()} ▼\n{flatten(v, depth + 1)}"
-                elif v not in [None, "", []]: res += f"{space}{str(k).upper().ljust(15)} : {v}\n"
+                elif v not in [None, "", []]:
+                    res += f"{space}{str(k).upper().ljust(15)} : {v}\n"
         elif isinstance(item, list):
-            for i, val in enumerate(item, 1): res += f"\n{space}--- [ RECORD {i} ] ---\n{flatten(val, depth)}"
-        else: res += f"{space}{item}\n"
+            for i, val in enumerate(item, 1):
+                res += f"\n{space}--- [ RECORD {i} ] ---\n{flatten(val, depth)}"
+        else:
+            res += f"{space}{item}\n"
         return res
 
     out = flatten(data)
@@ -282,7 +296,7 @@ def format_professional_data(data):
     return out.strip()
 
 # ==========================================
-# 📢 VIP ADS BROADCAST ENGINE 
+# 📢 VIP ADS BROADCAST ENGINE
 # ==========================================
 @bot.message_handler(commands=['ads'])
 def cmd_ads_start(message):
@@ -413,6 +427,55 @@ def cmd_set_api(message):
     update_api(api_key, new_api)
     success_msg = bot.reply_to(message, f"✅ **{api_key.upper()} API Updated Successfully!**\n\nNaya Link: `{new_api}`")
     schedule_delete_multi(message.chat.id, [success_msg.message_id, message.message_id], delay=15)
+
+# ==========================================
+# 🕵️ CHAT ID EXTRACTOR (NEW VIP FEATURE)
+# ==========================================
+@bot.message_handler(commands=['chat'])
+def cmd_chat_id(message):
+    track_group(message.chat.id)
+    if not is_allowed_chat(message.chat): return
+    
+    user_id = message.from_user.id
+    if not check_membership(user_id):
+        send_force_join(message.chat.id, message.message_id)
+        return
+
+    args = message.text.split()
+    if len(args) < 2:
+        err = bot.reply_to(message, "⚠️ **Usage:** `/chat @username`")
+        schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=10)
+        return
+    
+    target_username = args[1].strip()
+    if not target_username.startswith('@'):
+        target_username = '@' + target_username
+
+    status_msg = bot.reply_to(message, f"```ini\n[ EXTRACTING CHAT ID... ]\n```", parse_mode="Markdown")
+    loading_effect(message.chat.id, status_msg.message_id)
+
+    try:
+        chat_info = bot.get_chat(target_username)
+        
+        name = chat_info.first_name if chat_info.first_name else chat_info.title
+        c_type = str(chat_info.type).capitalize()
+        
+        res_text = (
+            f"🎯 **TARGET INFO EXTRACTED**\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"👤 **Name:** `{name}`\n"
+            f"🔗 **Username:** `{chat_info.username}`\n"
+            f"🆔 **Chat ID:** `{chat_info.id}`\n"
+            f"🏷️ **Type:** `{c_type}`\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"   ⚡️ **𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲** ⚡️\n"
+            f" 💎 **@frexxxy** 💎\n"
+        )
+        bot.edit_message_text(res_text, message.chat.id, status_msg.message_id, parse_mode="Markdown")
+        schedule_delete_multi(message.chat.id, [status_msg.message_id, message.message_id], delay=15)
+    except Exception as e:
+        bot.edit_message_text("❌ **Error:** Username nahi mila ya private hai.", message.chat.id, status_msg.message_id)
+        schedule_delete_multi(message.chat.id, [status_msg.message_id, message.message_id], delay=15)
 
 # ==========================================
 # 🛠️ UNIVERSAL API ENGINE
