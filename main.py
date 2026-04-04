@@ -33,9 +33,9 @@ CONFIG_FILE = "config.json"
 GROUPS_FILE = "groups_db.json"   
 ADS_FILE = "active_ads_db.json"  
 
-# 🚨 DEFAULT API LINKS (Ye direct chalengi bina set kiye) 🚨
+# 🚨 DEFAULT API LINKS (Bina set kiye direct chalengi) 🚨
 DEFAULT_APIS = {
-    "aadhaar": "https://num-info-paid.vercel.app/?num={}&key=ERROR",
+    "aadhar": "https://num-info-paid.vercel.app/?num={}&key=ERROR",
     "vehicle": "https://vehicleinfobyterabaap.vercel.app/lookup?rc={}",
     "pak": "https://pkmkb.free.nf/api.php?number={}",
     "ifsc": "https://ifsc.razorpay.com/{}",
@@ -45,7 +45,10 @@ DEFAULT_APIS = {
     "v2num": "https://your-v2num-api.com/api?num={}",
     "tg": "https://username-to-number.vercel.app/?key=my_dayne&q={}",
     "insta": "https://insta-profile-info-api.vercel.app/api/instagram.php?username={}",
-    "gmail": "https://gmail-osint.vercel.app/api?email={}" 
+    "gmail": "https://gmail-osint.vercel.app/api?email={}",
+    "ff": "https://abbas-apis.vercel.app/api/ff-info?uid={}",
+    "pincode": "https://paid.proportalxc.workers.dev/pincode?key=1kSubscriber&pincode={}",
+    "ip": "https://abbas-apis.vercel.app/api/ip?ip={}"
 }
 
 # ==========================================
@@ -92,15 +95,18 @@ except Exception as e:
 
 def set_bot_commands():
     commands = [
-        telebot.types.BotCommand("start", "Premium Start Menu"),
+        telebot.types.BotCommand("start", "Show Premium Menu"),
         telebot.types.BotCommand("num", "Number Info"),
         telebot.types.BotCommand("family", "Family Info"),
+        telebot.types.BotCommand("aadhar", "Aadhar Info"),
+        telebot.types.BotCommand("ff", "Free Fire Info"),
+        telebot.types.BotCommand("pincode", "Pincode Info"),
+        telebot.types.BotCommand("ip", "IP Address Info"),
         telebot.types.BotCommand("tg", "Telegram Info"),
         telebot.types.BotCommand("insta", "Instagram Info"),
         telebot.types.BotCommand("gmail", "Gmail Info"),
-        telebot.types.BotCommand("chat", "Get Chat ID (Reply/Forward)"),
+        telebot.types.BotCommand("chat", "Get Chat ID"),
         telebot.types.BotCommand("vehicle", "Vehicle Info"),
-        telebot.types.BotCommand("aadhaar", "Aadhaar Info"),
         telebot.types.BotCommand("pak", "Pak Info"),
         telebot.types.BotCommand("v2num", "V2 Number Info"),
         telebot.types.BotCommand("ifsc", "IFSC Info"),
@@ -154,7 +160,7 @@ def track_group(chat_id):
             save_json_file(db, GROUPS_FILE)
 
 # ==========================================
-# 🔒 SECURITY, MEMBERSHIP & FILTERS
+# 🔒 SECURITY & FILTERS
 # ==========================================
 def check_membership(user_id):
     try:
@@ -188,30 +194,33 @@ def send_force_join(chat_id, message_id):
 
 def send_welcome_menu(chat_id, user, user_msg_id=None):
     get_user_data(user.id)
-    name = user.first_name
     
+    # 👇 NAYA CLEAN & PROFESSIONAL VIP MENU 👇
     id_card = (
-        f"💎 𝐏𝐑𝐄𝐌𝐈𝐔𝐌 𝐈𝐍𝐅𝐎 𝐆𝐀𝐓𝐄𝐖𝐀𝐘 💎\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"👤 𝐔𝐬𝐞𝐫 : `{name}`\n"
-        f"🆔 𝐈𝐃   : `{user.id}`\n"
-        f"🎖️ 𝐑𝐚𝐧𝐤 : `VIP Member`\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"⚙️ 𝐌𝐀𝐈𝐍 𝐂𝐎𝐌𝐌𝐀𝐍𝐃𝐒:\n"
-        f"├ 📱 `/num` `[Number]` ➾ Get Number Details\n"
-        f"├ 👨‍👩‍👧 `/family` `[Aadhar]` ➾ Get Family Details\n"
-        f"├ ✈️ `/tg` `[@Username]` ➾ Get Telegram Info\n"
-        f"├ 📸 `/insta` `[Username]` ➾ Get Instagram Info\n"
-        f"├ 📧 `/gmail` `[Email]` ➾ Get Gmail Info\n"
-        f"├ 💬 `/chat` ➾ Get ID (Reply/Forward/Username)\n"
-        f"├ 🚙 `/vehicle` `[RC]` ➾ Get Vehicle Info\n"
-        f"├ 💳 `/aadhaar` `[UID]` ➾ Get Aadhaar Info\n"
-        f"├ 🇵🇰 `/pak` `[Number]` ➾ Pak Number Info\n"
-        f"├ 🏦 `/ifsc` `[IFSC]` ➾ Bank Details\n"
-        f"├ 💳 `/bin` `[BIN]` ➾ Card Details\n"
-        f"└ ♻️ `/v2num` `[Number]` ➾ V2 DB Search\n\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"⚡ 𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 : {SYSTEM_NAME}"
+        f"✦ ━━━━━━━━━━━━━━━━━━━━ ✦\n"
+        f"👑 **𝐏𝐑𝐄𝐌𝐈𝐔𝐌 𝐕𝐈𝐏 𝐏𝐀𝐍𝐄𝐋** 👑\n"
+        f"✦ ━━━━━━━━━━━━━━━━━━━━ ✦\n"
+        f"👤 **𝐔𝐬𝐞𝐫:** `{user.first_name}` | 🆔 `{user.id}`\n\n"
+        f"🌐 **𝗜𝐍𝐅𝐎 𝐂𝐎𝐌𝐌𝐀𝐍𝐃𝐒**\n"
+        f"• 📱 `/num` ➾ Phone Details\n"
+        f"• ♻️ `/v2num` ➾ V2 Phone DB\n"
+        f"• 👨‍👩‍👧 `/family` ➾ Family Details\n"
+        f"• 💳 `/aadhar` ➾ Aadhar Details\n"
+        f"• 🚙 `/vehicle` ➾ Vehicle RC\n"
+        f"• 🇵🇰 `/pak` ➾ Pak Database\n\n"
+        f"💻 **𝐒𝐎𝐂𝐈𝐀𝐋 & 𝐆𝐀𝐌𝐈𝐍𝐆**\n"
+        f"• 🎮 `/ff` ➾ Free Fire Info\n"
+        f"• ✈️ `/tg` ➾ Telegram User Info\n"
+        f"• 📸 `/insta` ➾ Instagram Info\n"
+        f"• 📧 `/gmail` ➾ Gmail OSINT\n\n"
+        f"🏦 **𝐅𝐈𝐍𝐀𝐍𝐂𝐄 & 𝐍𝐄𝐓𝐖𝐎𝐑𝐊**\n"
+        f"• 🏦 `/ifsc` ➾ Bank IFSC\n"
+        f"• 💳 `/bin` ➾ Card BIN\n"
+        f"• 📍 `/pincode` ➾ Area Pincode\n"
+        f"• 🌐 `/ip` ➾ IP Tracker\n"
+        f"• 💬 `/chat` ➾ Get Chat ID\n\n"
+        f"⚡ 𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 : {SYSTEM_NAME}\n"
+        f"✦ ━━━━━━━━━━━━━━━━━━━━ ✦"
     )
     sent_msg = bot.send_message(chat_id, id_card, parse_mode="Markdown")
     schedule_delete_multi(chat_id, [sent_msg.message_id, user_msg_id], delay=30)
@@ -260,7 +269,7 @@ def format_professional_data(data):
         elif "data" in data and isinstance(data["data"], (list, dict)): data = data["data"]
         elif "result" in data and isinstance(data["result"], (list, dict)): data = data["result"]
 
-    ordered_keys = ["name", "username", "membername", "fname", "fathername", "mobile", "phone", "alt", "circle", "state", "email", "id", "rcid", "uid", "ration_card_no", "address", "relationship_name", "followers", "following", "bio"]
+    ordered_keys = ["name", "username", "membername", "fname", "fathername", "mobile", "phone", "alt", "circle", "state", "email", "id", "rcid", "uid", "ration_card_no", "address", "relationship_name", "followers", "following", "bio", "ip", "city", "country", "pincode", "district", "region", "level"]
     
     def flatten(item, depth=0):
         res = ""
@@ -298,7 +307,7 @@ def cmd_ads_start(message):
 def process_ad_broadcast(message):
     ad_text = message.text
     groups = load_json_file(GROUPS_FILE)
-    if not groups: return bot.reply_to(message, "❌ Abhi tak bot kisi group me save nahi hua hai.")
+    if not groups: return bot.reply_to(message, "❌ Abhi tak bot kisi group me save nahi hua hai. Pehle bot ko groups me add karo.")
 
     broadcast_id = str(int(time.time()))
     status_msg = bot.reply_to(message, "🚀 **Broadcasting Ads... Please wait.**")
@@ -378,7 +387,7 @@ def start(message):
 # ==========================================
 # 👑 OWNER API MANAGEMENT COMMANDS
 # ==========================================
-@bot.message_handler(commands=['numapi', 'familyapi', 'tgapi', 'v2numapi', 'vehicleapi', 'pakapi', 'aadhaarapi', 'ifscapi', 'binapi', 'instaapi', 'gmailapi'])
+@bot.message_handler(commands=['numapi', 'familyapi', 'tgapi', 'v2numapi', 'vehicleapi', 'pakapi', 'aadharapi', 'ifscapi', 'binapi', 'instaapi', 'gmailapi', 'ffapi', 'pincodeapi', 'ipapi'])
 def cmd_set_api(message):
     track_group(message.chat.id)
     if message.from_user.id != OWNER_ID:
@@ -408,71 +417,6 @@ def cmd_set_api(message):
     schedule_delete_multi(message.chat.id, [success_msg.message_id, message.message_id], delay=15)
 
 # ==========================================
-# 🕵️ CHAT ID EXTRACTOR 
-# ==========================================
-@bot.message_handler(commands=['chat', 'id'])
-def cmd_chat_id(message):
-    track_group(message.chat.id)
-    if not is_allowed_chat(message.chat): return
-    if not check_membership(message.from_user.id): return send_force_join(message.chat.id, message.message_id)
-
-    if message.reply_to_message:
-        target = message.reply_to_message.from_user
-        name = target.first_name
-        username = f"@{target.username}" if target.username else "Private"
-        res_text = f"🎯 **TARGET INFO**\n━━━━━━━━━━━━━━━━━━━━━━\n👤 **Name:** `{name}`\n🔗 **Username:** `{username}`\n🆔 **User ID:** `{target.id}`\n━━━━━━━━━━━━━━━━━━━━━━\n 💎 **@frexxxy** 💎\n"
-        msg = bot.reply_to(message, res_text, parse_mode="Markdown")
-        return schedule_delete_multi(message.chat.id, [msg.message_id, message.message_id], delay=15)
-
-    args = message.text.split()
-    if len(args) < 2:
-        err = bot.reply_to(message, "⚠️ **Usage:** `/chat @username`")
-        return schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=10)
-    
-    target_username = args[1].strip()
-    if not target_username.startswith('@'): target_username = '@' + target_username
-
-    status_msg = bot.reply_to(message, f"```ini\n[ EXTRACTING CHAT ID... ]\n```", parse_mode="Markdown")
-    loading_effect(message.chat.id, status_msg.message_id)
-
-    try:
-        chat_info = bot.get_chat(target_username)
-        name = chat_info.first_name if chat_info.first_name else chat_info.title
-        c_type = str(chat_info.type).capitalize()
-        username = f"@{chat_info.username}" if chat_info.username else "Private"
-        res_text = f"🎯 **TARGET INFO**\n━━━━━━━━━━━━━━━━━━━━━━\n👤 **Name:** `{name}`\n🔗 **Username:** `{username}`\n🆔 **Chat ID:** `{chat_info.id}`\n🏷️ **Type:** `{c_type}`\n━━━━━━━━━━━━━━━━━━━━━━\n 💎 **@frexxxy** 💎\n"
-        bot.edit_message_text(res_text, message.chat.id, status_msg.message_id, parse_mode="Markdown")
-        schedule_delete_multi(message.chat.id, [status_msg.message_id, message.message_id], delay=15)
-    except Exception:
-        bot.edit_message_text("❌ **Error:** Telegram aam users ka search block karta hai. Reply method use karo!", message.chat.id, status_msg.message_id)
-        schedule_delete_multi(message.chat.id, [status_msg.message_id, message.message_id], delay=15)
-
-@bot.message_handler(func=lambda message: message.forward_from or message.forward_from_chat)
-def handle_forward(message):
-    track_group(message.chat.id)
-    if not is_allowed_chat(message.chat): return
-    if not check_membership(message.from_user.id): return
-    status_msg = bot.reply_to(message, f"```ini\n[ SCANNING FORWARDED DATA... ]\n```", parse_mode="Markdown")
-    loading_effect(message.chat.id, status_msg.message_id)
-
-    if message.forward_from:
-        target = message.forward_from
-        name = target.first_name
-        username = f"@{target.username}" if target.username else "Private"
-        t_type = "User"
-        t_id = target.id
-    elif message.forward_from_chat:
-        target = message.forward_from_chat
-        name = target.title
-        username = f"@{target.username}" if target.username else "Private"
-        t_type = str(target.type).capitalize()
-        t_id = target.id
-        
-    res_text = f"🎯 **FORWARDED TARGET**\n━━━━━━━━━━━━━━━━━━━━━━\n👤 **Name:** `{name}`\n🔗 **Username:** `{username}`\n🆔 **ID:** `{t_id}`\n🏷️ **Type:** `{t_type}`\n━━━━━━━━━━━━━━━━━━━━━━\n 💎 **@frexxxy** 💎\n"
-    bot.edit_message_text(res_text, message.chat.id, status_msg.message_id, parse_mode="Markdown")
-    schedule_delete_multi(message.chat.id, [status_msg.message_id, message.message_id], delay=15)
-
-# ==========================================
 # 🛠️ UNIVERSAL API ENGINE
 # ==========================================
 def handle_api(message, api_key, command_name):
@@ -482,13 +426,13 @@ def handle_api(message, api_key, command_name):
 
     args = message.text.split()
     if len(args) < 2:
-        err = bot.reply_to(message, f"⚠️ **Usage:** `/{command_name.lower()} <ID>`")
+        err = bot.reply_to(message, f"⚠️ **Usage:** `/{command_name.lower()} <Input>`")
         return schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=10)
     
     input_id = args[1].strip()
     api_url = get_api(api_key)
     
-    if not api_url:
+    if not api_url or "YOUR_GMAIL" in api_url:
         err = bot.reply_to(message, f"⚠️ **API NOT SET:** Bhai, `{command_name}` ki API abhi tak add nahi ki gayi hai!")
         return schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=15)
 
@@ -537,8 +481,8 @@ def handle_api(message, api_key, command_name):
 # ==========================================
 # 🎮 COMMAND HANDLERS
 # ==========================================
-@bot.message_handler(commands=['aadhaar', 'uid'])
-def cmd_aadhaar(m): handle_api(m, "aadhaar", "Aadhaar")
+@bot.message_handler(commands=['aadhar', 'uid'])
+def cmd_aadhar(m): handle_api(m, "aadhar", "Aadhar")
 
 @bot.message_handler(commands=['pak'])
 def cmd_pak(m): handle_api(m, "pak", "Pak")
@@ -569,6 +513,78 @@ def cmd_ifsc(m): handle_api(m, "ifsc", "IFSC")
 
 @bot.message_handler(commands=['bin'])
 def cmd_bin(m): handle_api(m, "bin", "BIN")
+
+@bot.message_handler(commands=['ff', 'freefire'])
+def cmd_ff(m): handle_api(m, "ff", "Free Fire")
+
+@bot.message_handler(commands=['pincode', 'pin'])
+def cmd_pincode(m): handle_api(m, "pincode", "Pincode")
+
+@bot.message_handler(commands=['ip', 'ipaddress'])
+def cmd_ip(m): handle_api(m, "ip", "IP Address")
+
+# 🕵️ CHAT ID EXTRACTOR 
+@bot.message_handler(commands=['chat', 'id'])
+def cmd_chat_id(message):
+    track_group(message.chat.id)
+    if not is_allowed_chat(message.chat): return
+    if not check_membership(message.from_user.id): return send_force_join(message.chat.id, message.message_id)
+
+    if message.reply_to_message:
+        target = message.reply_to_message.from_user
+        name = target.first_name
+        username = f"@{target.username}" if target.username else "Private"
+        res_text = f"🎯 **TARGET INFO**\n━━━━━━━━━━━━━━━━━━━━━━\n👤 **Name:** `{name}`\n🔗 **Username:** `{username}`\n🆔 **User ID:** `{target.id}`\n━━━━━━━━━━━━━━━━━━━━━━\n 💎 **@frexxxy** 💎\n"
+        msg = bot.reply_to(message, res_text, parse_mode="Markdown")
+        return schedule_delete_multi(message.chat.id, [msg.message_id, message.message_id], delay=15)
+
+    args = message.text.split()
+    if len(args) < 2:
+        err = bot.reply_to(message, "⚠️ **Usage:** `/chat @username`\n💡 *Tip: Kisi aam user ki ID chahiye toh uske message par reply karke `/chat` likho!*")
+        return schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=10)
+    
+    target_username = args[1].strip()
+    if not target_username.startswith('@'): target_username = '@' + target_username
+
+    status_msg = bot.reply_to(message, f"```ini\n[ EXTRACTING CHAT ID... ]\n```", parse_mode="Markdown")
+    loading_effect(message.chat.id, status_msg.message_id)
+
+    try:
+        chat_info = bot.get_chat(target_username)
+        name = chat_info.first_name if chat_info.first_name else chat_info.title
+        c_type = str(chat_info.type).capitalize()
+        username = f"@{chat_info.username}" if chat_info.username else "Private"
+        res_text = f"🎯 **TARGET INFO**\n━━━━━━━━━━━━━━━━━━━━━━\n👤 **Name:** `{name}`\n🔗 **Username:** `{username}`\n🆔 **Chat ID:** `{chat_info.id}`\n🏷️ **Type:** `{c_type}`\n━━━━━━━━━━━━━━━━━━━━━━\n 💎 **@frexxxy** 💎\n"
+        bot.edit_message_text(res_text, message.chat.id, status_msg.message_id, parse_mode="Markdown")
+        schedule_delete_multi(message.chat.id, [status_msg.message_id, message.message_id], delay=15)
+    except Exception:
+        bot.edit_message_text("❌ **Error:** Telegram aam users ka search block karta hai. Reply method use karo!", message.chat.id, status_msg.message_id)
+        schedule_delete_multi(message.chat.id, [status_msg.message_id, message.message_id], delay=15)
+
+@bot.message_handler(func=lambda message: message.forward_from or message.forward_from_chat)
+def handle_forward(message):
+    track_group(message.chat.id)
+    if not is_allowed_chat(message.chat): return
+    if not check_membership(message.from_user.id): return
+    status_msg = bot.reply_to(message, f"```ini\n[ SCANNING FORWARDED DATA... ]\n```", parse_mode="Markdown")
+    loading_effect(message.chat.id, status_msg.message_id)
+
+    if message.forward_from:
+        target = message.forward_from
+        name = target.first_name
+        username = f"@{target.username}" if target.username else "Private"
+        t_type = "User"
+        t_id = target.id
+    elif message.forward_from_chat:
+        target = message.forward_from_chat
+        name = target.title
+        username = f"@{target.username}" if target.username else "Private"
+        t_type = str(target.type).capitalize()
+        t_id = target.id
+        
+    res_text = f"🎯 **FORWARDED TARGET**\n━━━━━━━━━━━━━━━━━━━━━━\n👤 **Name:** `{name}`\n🔗 **Username:** `{username}`\n🆔 **ID:** `{t_id}`\n🏷️ **Type:** `{t_type}`\n━━━━━━━━━━━━━━━━━━━━━━\n 💎 **@frexxxy** 💎\n"
+    bot.edit_message_text(res_text, message.chat.id, status_msg.message_id, parse_mode="Markdown")
+    schedule_delete_multi(message.chat.id, [status_msg.message_id, message.message_id], delay=15)
 
 # 🔥 GROUP TRACKER (Catches any text to ensure group is saved) 🔥
 @bot.message_handler(content_types=['text', 'new_chat_members', 'left_chat_member'])
