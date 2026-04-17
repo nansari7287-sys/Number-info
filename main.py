@@ -33,7 +33,7 @@ CONFIG_FILE = "config.json"
 GROUPS_FILE = "groups_db.json"   
 ADS_FILE = "active_ads_db.json"  
 
-# 🚨 DEFAULT API LINKS (Bina set kiye direct chalengi) 🚨
+# 🚨 DEFAULT API LINKS
 DEFAULT_APIS = {
     "aadhar": "https://num-info-paid.vercel.app/?num={}&key=ERROR",
     "vehicle": "https://vehicleinfobyterabaap.vercel.app/lookup?rc={}",
@@ -51,14 +51,15 @@ DEFAULT_APIS = {
     "ip": "https://abbas-apis.vercel.app/api/ip?ip={}"
 }
 
+# Anti-Spam Dictionary
+user_cooldowns = {}
+
 # ==========================================
 # 🌐 FLASK SERVER
 # ==========================================
 app = Flask(__name__)
-
 @app.route('/')
-def home():
-    return f"{SYSTEM_NAME} Bot is Running 24/7 on Render/Termux!"
+def home(): return f"{SYSTEM_NAME} Bot is Running 24/7 on Render/Termux!"
 
 def run_server():
     port = int(os.environ.get("PORT", 8080))
@@ -77,20 +78,20 @@ session.mount('http://', adapter)
 session.mount('https://', adapter)
 
 def get_random_headers():
-    user_agents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-    ]
     return {
-        'User-Agent': random.choice(user_agents),
-        'Accept': 'text/html,application/json,application/xhtml+xml',
+        'User-Agent': random.choice([
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+            "Mozilla/5.0 (Linux; Android 13; SM-S901B)"
+        ]),
+        'Accept': 'application/json, text/plain, */*',
         'Connection': 'keep-alive'
     }
 
 try:
     bot = telebot.TeleBot(TOKEN, parse_mode="Markdown")
 except Exception as e:
-    print(f"❌ Critical Token Error: {e}")
+    print(f"❌ Token Error: {e}")
     exit()
 
 def set_bot_commands():
@@ -106,16 +107,12 @@ def set_bot_commands():
         telebot.types.BotCommand("insta", "Instagram Info"),
         telebot.types.BotCommand("gmail", "Gmail Info"),
         telebot.types.BotCommand("chat", "Get Chat ID"),
-        telebot.types.BotCommand("vehicle", "Vehicle Info"),
-        telebot.types.BotCommand("pak", "Pak Info"),
-        telebot.types.BotCommand("v2num", "V2 Number Info"),
-        telebot.types.BotCommand("ifsc", "IFSC Info"),
-        telebot.types.BotCommand("bin", "BIN Info")
+        telebot.types.BotCommand("vehicle", "Vehicle Info")
     ]
     bot.set_my_commands(commands)
 
 # ==========================================
-# 💾 DATABASE & API MANAGEMENT
+# 💾 DATABASE MANAGEMENT
 # ==========================================
 def load_json_file(filename):
     if os.path.exists(filename):
@@ -126,8 +123,7 @@ def load_json_file(filename):
 
 def save_json_file(data, filename):
     try:
-        with open(filename, "w") as f:
-            json.dump(data, f, indent=4)
+        with open(filename, "w") as f: json.dump(data, f, indent=4)
     except: pass
 
 def get_user_data(user_id):
@@ -147,8 +143,7 @@ def get_api(api_name):
 
 def update_api(api_name, new_url):
     config = load_json_file(CONFIG_FILE)
-    if "apis" not in config:
-        config["apis"] = DEFAULT_APIS
+    if "apis" not in config: config["apis"] = DEFAULT_APIS
     config["apis"][api_name] = new_url
     save_json_file(config, CONFIG_FILE)
 
@@ -160,20 +155,27 @@ def track_group(chat_id):
             save_json_file(db, GROUPS_FILE)
 
 # ==========================================
-# 🔒 SECURITY & FILTERS
+# 🔒 SECURITY & ANTI-SPAM
 # ==========================================
 def check_membership(user_id):
     try:
         c1 = bot.get_chat_member(REQ_CHANNEL, user_id)
         g1 = bot.get_chat_member(REQ_GROUP_1, user_id)
         valid = ['creator', 'administrator', 'member']
-        if c1.status in valid and g1.status in valid: return True
-        return False
-    except Exception: return False
+        return c1.status in valid and g1.status in valid
+    except: return False
 
 def is_allowed_chat(chat): return True
 
-# 🗑️ MULTI AUTO DELETE 
+def is_spamming(user_id):
+    if user_id == OWNER_ID: return False
+    now = time.time()
+    if user_id in user_cooldowns:
+        if now - user_cooldowns[user_id] < 4: # 4 seconds cooldown
+            return True
+    user_cooldowns[user_id] = now
+    return False
+
 def schedule_delete_multi(chat_id, message_ids_list, delay=15):
     def delete_task():
         time.sleep(delay)
@@ -188,14 +190,11 @@ def send_force_join(chat_id, message_id):
     markup.add(telebot.types.InlineKeyboardButton("📢 Join Channel", url=CHANNEL_LINK))
     markup.add(telebot.types.InlineKeyboardButton("👥 Join Group", url=GROUP_1_LINK))
     markup.add(telebot.types.InlineKeyboardButton("✅ Verify", callback_data="check_subscription"))
-    msg = "🛑 **ACCESS DENIED** 🛑\n\nCommands use karne ke liye hamare Channel aur Group join karo."
-    sent_msg = bot.send_message(chat_id, msg, reply_markup=markup, reply_to_message_id=message_id)
-    schedule_delete_multi(chat_id, [sent_msg.message_id, message_id], delay=30)
+    msg = bot.send_message(chat_id, "🛑 **ACCESS DENIED** 🛑\n\nCommands use karne ke liye hamare Channel aur Group join karo.", reply_markup=markup)
+    schedule_delete_multi(chat_id, [msg.message_id, message_id], delay=30)
 
 def send_welcome_menu(chat_id, user, user_msg_id=None):
     get_user_data(user.id)
-    
-    # 👇 NAYA CLEAN & PROFESSIONAL VIP MENU 👇
     id_card = (
         f"✦ ━━━━━━━━━━━━━━━━━━━━ ✦\n"
         f"👑 **𝐏𝐑𝐄𝐌𝐈𝐔𝐌 𝐕𝐈𝐏 𝐏𝐀𝐍𝐄𝐋** 👑\n"
@@ -234,10 +233,10 @@ def check_sub_callback(call):
         veri_msg = bot.send_message(call.message.chat.id, "✅ **Verification Successful!**")
         schedule_delete_multi(call.message.chat.id, [veri_msg.message_id], delay=10)
         send_welcome_menu(call.message.chat.id, call.from_user)
-    else:
-        bot.answer_callback_query(call.id, "❌ Channel aur Group Join Karo Pehle!", show_alert=True)
+    else: bot.answer_callback_query(call.id, "❌ Channel aur Group Join Karo Pehle!", show_alert=True)
 
-def loading_effect(chat_id, message_id):
+# ⏳ PARALLEL FAST ANIMATION ENGINE
+def loading_effect(chat_id, message_id, stop_event):
     bars = [
         "▒▒▒▒▒▒▒▒▒▒ 0% [CONNECTING]",
         "███▒▒▒▒▒▒▒ 25% [CHECKING DB]",
@@ -246,13 +245,14 @@ def loading_effect(chat_id, message_id):
         "██████████ 100% [COMPLETED]"
     ]
     for bar in bars:
+        if stop_event.is_set(): break # Stop immediately if data found
         try:
             bot.edit_message_text(f"```ini\n{bar}\n```", chat_id, message_id, parse_mode="Markdown")
-            time.sleep(0.4) 
+            time.sleep(0.3) 
         except: pass
 
 # ==========================================
-# 🛠️ UNIVERSAL AUTO-FLATTENER & FORMATTER
+# 🛠️ UNIVERSAL AUTO-FLATTENER 
 # ==========================================
 def extract_pure_json(text):
     try:
@@ -269,11 +269,15 @@ def format_professional_data(data):
         elif "data" in data and isinstance(data["data"], (list, dict)): data = data["data"]
         elif "result" in data and isinstance(data["result"], (list, dict)): data = data["result"]
 
-    ordered_keys = ["name", "username", "membername", "fname", "fathername", "mobile", "phone", "alt", "circle", "state", "email", "id", "rcid", "uid", "ration_card_no", "address", "relationship_name", "followers", "following", "bio", "ip", "city", "country", "pincode", "district", "region", "level"]
+    ordered_keys = [
+        "name", "username", "membername", "fname", "fathername", "mobile", "phone", 
+        "alt", "circle", "state", "email", "id", "rcid", "uid", "ration_card_no", "address", 
+        "relationship_name", "followers", "following", "bio", "ip", "city", "country", 
+        "pincode", "district", "region", "level", "likes", "account_created", "isp", "timezone"
+    ]
     
     def flatten(item, depth=0):
-        res = ""
-        space = "  " * depth
+        res = ""; space = "  " * depth
         if isinstance(item, dict):
             for key in ordered_keys:
                 actual_key = next((k for k in item.keys() if str(k).lower() == key), None)
@@ -295,19 +299,29 @@ def format_professional_data(data):
     return out.strip()
 
 # ==========================================
-# 📢 VIP ADS BROADCAST ENGINE
+# 👑 OWNER COMMANDS (ADS, STATS, API)
 # ==========================================
+@bot.message_handler(commands=['stats'])
+def cmd_stats(message):
+    if message.from_user.id != OWNER_ID: return
+    users = len(load_json_file(DATA_FILE))
+    groups = len(load_json_file(GROUPS_FILE))
+    ads = len(load_json_file(ADS_FILE))
+    stat_msg = f"📊 **BOT STATISTICS**\n━━━━━━━━━━━━\n👤 Total Users: `{users}`\n👥 Total Groups: `{groups}`\n📢 Active Ads: `{ads}`"
+    m = bot.reply_to(message, stat_msg)
+    schedule_delete_multi(message.chat.id, [m.message_id, message.message_id], 20)
+
 @bot.message_handler(commands=['ads'])
 def cmd_ads_start(message):
     track_group(message.chat.id)
     if message.from_user.id != OWNER_ID: return
-    msg = bot.reply_to(message, "📢 **VIP AD BROADCAST SYSTEM**\n\n📝 Kripya apna Ad message bhejiye jo aap sabhi groups me chalana chahte hain.")
+    msg = bot.reply_to(message, "📢 **VIP AD BROADCAST SYSTEM**\n\n📝 Kripya apna Ad message bhejiye...")
     bot.register_next_step_handler(msg, process_ad_broadcast)
 
 def process_ad_broadcast(message):
     ad_text = message.text
     groups = load_json_file(GROUPS_FILE)
-    if not groups: return bot.reply_to(message, "❌ Abhi tak bot kisi group me save nahi hua hai. Pehle bot ko groups me add karo.")
+    if not groups: return bot.reply_to(message, "❌ Abhi tak bot kisi group me save nahi hua hai.")
 
     broadcast_id = str(int(time.time()))
     status_msg = bot.reply_to(message, "🚀 **Broadcasting Ads... Please wait.**")
@@ -319,7 +333,7 @@ def process_ad_broadcast(message):
             sent = bot.send_message(gid, ad_text, parse_mode="Markdown", disable_web_page_preview=True)
             sent_messages[gid] = sent.message_id
             success_count += 1
-            time.sleep(0.3)
+            time.sleep(0.2)
         except Exception: pass
             
     active_ads = load_json_file(ADS_FILE)
@@ -341,7 +355,6 @@ def process_ad_broadcast(message):
 def ad_control_callback(call):
     if call.from_user.id != OWNER_ID: return bot.answer_callback_query(call.id, "Access Denied!", show_alert=True)
     data = call.data.split('_'); action = data[1]; b_id = data[2]
-    
     active_ads = load_json_file(ADS_FILE)
     if b_id not in active_ads: return bot.answer_callback_query(call.id, "Ad already deleted!", show_alert=True)
         
@@ -374,73 +387,38 @@ def scheduled_ad_delete(b_id, delay, chat_id, msg_id):
         try: bot.edit_message_text(f"⏳ **Timer Finished!**\nAd automatically delete ho chuki hai.", chat_id, msg_id)
         except: pass
 
-# ==========================================
-# 🚀 START COMMAND
-# ==========================================
-@bot.message_handler(commands=['start'])
-def start(message):
-    track_group(message.chat.id)
-    if not is_allowed_chat(message.chat): return
-    if not check_membership(message.from_user.id): return send_force_join(message.chat.id, message.message_id)
-    send_welcome_menu(message.chat.id, message.from_user, message.message_id)
-
-# ==========================================
-# 👑 OWNER API MANAGEMENT COMMANDS
-# ==========================================
 @bot.message_handler(commands=['numapi', 'familyapi', 'tgapi', 'v2numapi', 'vehicleapi', 'pakapi', 'aadharapi', 'ifscapi', 'binapi', 'instaapi', 'gmailapi', 'ffapi', 'pincodeapi', 'ipapi'])
 def cmd_set_api(message):
     track_group(message.chat.id)
-    if message.from_user.id != OWNER_ID:
-        err = bot.reply_to(message, "❌ **ACCESS DENIED:** You are not the Owner!")
-        return schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=10)
-
+    if message.from_user.id != OWNER_ID: return
     args = message.text.split(maxsplit=1)
-    if len(args) < 2:
-        err = bot.reply_to(message, "⚠️ **FORMAT:** `/command <API_LINK>`\n*Note:* API Link me `{}` lagana mat bhulna!")
-        return schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=15)
-
+    if len(args) < 2: return bot.reply_to(message, "⚠️ **FORMAT:** `/command <API_LINK>`\n*Note:* API Link me `{}` lagana mat bhulna!")
     new_api = args[1].strip()
-    if "{}" not in new_api:
-        err = bot.reply_to(message, "⚠️ **ERROR:** Link me `{}` nahi hai!")
-        return schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=15)
-
+    if "{}" not in new_api: return bot.reply_to(message, "⚠️ **ERROR:** Link me `{}` nahi hai!")
     raw_cmd = args[0].replace('/', '').replace('api', '')
     api_key = raw_cmd 
-
     current_api = get_api(api_key)
-    if new_api == current_api:
-        err = bot.reply_to(message, f"⚠️ **Same API:** Bhai, ye API pehle se hi set hai! Koi nayi API daalo.\n`{new_api}`")
-        return schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=15)
-
+    if new_api == current_api: return bot.reply_to(message, f"⚠️ **Same API:** Bhai, ye API pehle se hi set hai!\n`{new_api}`")
     update_api(api_key, new_api)
     success_msg = bot.reply_to(message, f"✅ **{api_key.upper()} API Updated Successfully!**\n\nNaya Link: `{new_api}`")
     schedule_delete_multi(message.chat.id, [success_msg.message_id, message.message_id], delay=15)
 
 # ==========================================
-# 🛠️ UNIVERSAL API ENGINE
+# 🚀 CORE SEARCH ENGINE (PARALLEL)
 # ==========================================
-def handle_api(message, api_key, command_name):
+@bot.message_handler(commands=['start'])
+def start(message):
     track_group(message.chat.id)
-    if not is_allowed_chat(message.chat): return
     if not check_membership(message.from_user.id): return send_force_join(message.chat.id, message.message_id)
+    send_welcome_menu(message.chat.id, message.from_user, message.message_id)
 
-    args = message.text.split()
-    if len(args) < 2:
-        err = bot.reply_to(message, f"⚠️ **Usage:** `/{command_name.lower()} <Input>`")
-        return schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=10)
-    
-    input_id = args[1].strip()
-    api_url = get_api(api_key)
-    
-    if not api_url or "YOUR_GMAIL" in api_url:
-        err = bot.reply_to(message, f"⚠️ **API NOT SET:** Bhai, `{command_name}` ki API abhi tak add nahi ki gayi hai!")
-        return schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], delay=15)
-
-    status_msg = bot.reply_to(message, f"```ini\n[ SEARCHING {command_name.upper()}... ]\n```", parse_mode="Markdown")
-    loading_effect(message.chat.id, status_msg.message_id)
-
+def execute_api_request(message, api_url, input_id, command_name, status_msg, stop_event):
     try:
-        response = session.get(api_url.format(input_id), headers=get_random_headers(), timeout=30)
+        # Retry mechanism built-in (tries twice if fails)
+        response = session.get(api_url.format(input_id), headers=get_random_headers(), timeout=25)
+        
+        stop_event.set() # Stop animation INSTANTLY
+        
         if response.status_code == 200:
             data = None
             try:
@@ -459,7 +437,14 @@ def handle_api(message, api_key, command_name):
                 for k in [k for k in data.keys() if k.lower() in bad_keys]: del data[k]
 
             has_valid_data = bool(data)
-            if isinstance(data, dict) and (data.get("status") == "failed" or data.get("success") is False): has_valid_data = False
+            
+            # Smart API Expired/Limit check
+            data_str = str(data).lower()
+            if "expired" in data_str or "limit" in data_str or "invalid api" in data_str:
+                bot.edit_message_text(f"⚠️ **API LIMIT REACHED**\nBhai, is `{command_name}` ki API ki limit khatam ho gayi hai ya expire ho gayi hai. Owner ko bolo nayi API set kare!", message.chat.id, status_msg.message_id)
+                return schedule_delete_multi(message.chat.id, [status_msg.message_id, message.message_id], 15)
+
+            if isinstance(data, dict) and (data.get("status") in ["failed", "error"] or data.get("success") is False): has_valid_data = False
             elif isinstance(data, str) and "no data" in data.lower(): has_valid_data = False
 
             if not has_valid_data:
@@ -475,8 +460,37 @@ def handle_api(message, api_key, command_name):
             bot.edit_message_text(f"❌ API Error: Server returned {response.status_code}", message.chat.id, status_msg.message_id)
             schedule_delete_multi(message.chat.id, [status_msg.message_id, message.message_id], 15)
     except Exception as e:
-        bot.edit_message_text("⚠️ **Connection Error or No Data Found**", message.chat.id, status_msg.message_id)
+        stop_event.set()
+        bot.edit_message_text(f"⚠️ **Timeout/Error:** API server slow hai ya offline hai.", message.chat.id, status_msg.message_id)
         schedule_delete_multi(message.chat.id, [status_msg.message_id, message.message_id], 15)
+
+def handle_api(message, api_key, command_name):
+    track_group(message.chat.id)
+    if not check_membership(message.from_user.id): return send_force_join(message.chat.id, message.message_id)
+
+    # Anti-Spam Check
+    if is_spamming(message.from_user.id):
+        m = bot.reply_to(message, "⏳ **Spam Mat Karo!** Thoda aaram se command use karo.")
+        return schedule_delete_multi(message.chat.id, [m.message_id, message.message_id], 5)
+
+    args = message.text.split()
+    if len(args) < 2:
+        err = bot.reply_to(message, f"⚠️ **Usage:** `/{command_name.lower()} <Input>`")
+        return schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], 10)
+    
+    input_id = args[1].strip()
+    api_url = get_api(api_key)
+    
+    if not api_url or "YOUR_GMAIL" in api_url:
+        err = bot.reply_to(message, f"⚠️ **API NOT SET:** Bhai, `{command_name}` ki API abhi tak add nahi ki gayi hai!")
+        return schedule_delete_multi(message.chat.id, [err.message_id, message.message_id], 15)
+
+    status_msg = bot.reply_to(message, f"```ini\n[ SEARCHING {command_name.upper()}... ]\n```", parse_mode="Markdown")
+    
+    # Threading: Animation and API run simultaneously
+    stop_event = threading.Event()
+    threading.Thread(target=loading_effect, args=(message.chat.id, status_msg.message_id, stop_event)).start()
+    threading.Thread(target=execute_api_request, args=(message, api_url, input_id, command_name, status_msg, stop_event)).start()
 
 # ==========================================
 # 🎮 COMMAND HANDLERS
@@ -527,7 +541,6 @@ def cmd_ip(m): handle_api(m, "ip", "IP Address")
 @bot.message_handler(commands=['chat', 'id'])
 def cmd_chat_id(message):
     track_group(message.chat.id)
-    if not is_allowed_chat(message.chat): return
     if not check_membership(message.from_user.id): return send_force_join(message.chat.id, message.message_id)
 
     if message.reply_to_message:
@@ -547,8 +560,6 @@ def cmd_chat_id(message):
     if not target_username.startswith('@'): target_username = '@' + target_username
 
     status_msg = bot.reply_to(message, f"```ini\n[ EXTRACTING CHAT ID... ]\n```", parse_mode="Markdown")
-    loading_effect(message.chat.id, status_msg.message_id)
-
     try:
         chat_info = bot.get_chat(target_username)
         name = chat_info.first_name if chat_info.first_name else chat_info.title
@@ -557,17 +568,15 @@ def cmd_chat_id(message):
         res_text = f"🎯 **TARGET INFO**\n━━━━━━━━━━━━━━━━━━━━━━\n👤 **Name:** `{name}`\n🔗 **Username:** `{username}`\n🆔 **Chat ID:** `{chat_info.id}`\n🏷️ **Type:** `{c_type}`\n━━━━━━━━━━━━━━━━━━━━━━\n 💎 **@frexxxy** 💎\n"
         bot.edit_message_text(res_text, message.chat.id, status_msg.message_id, parse_mode="Markdown")
         schedule_delete_multi(message.chat.id, [status_msg.message_id, message.message_id], delay=15)
-    except Exception:
+    except:
         bot.edit_message_text("❌ **Error:** Telegram aam users ka search block karta hai. Reply method use karo!", message.chat.id, status_msg.message_id)
         schedule_delete_multi(message.chat.id, [status_msg.message_id, message.message_id], delay=15)
 
 @bot.message_handler(func=lambda message: message.forward_from or message.forward_from_chat)
 def handle_forward(message):
     track_group(message.chat.id)
-    if not is_allowed_chat(message.chat): return
     if not check_membership(message.from_user.id): return
     status_msg = bot.reply_to(message, f"```ini\n[ SCANNING FORWARDED DATA... ]\n```", parse_mode="Markdown")
-    loading_effect(message.chat.id, status_msg.message_id)
 
     if message.forward_from:
         target = message.forward_from
@@ -586,7 +595,6 @@ def handle_forward(message):
     bot.edit_message_text(res_text, message.chat.id, status_msg.message_id, parse_mode="Markdown")
     schedule_delete_multi(message.chat.id, [status_msg.message_id, message.message_id], delay=15)
 
-# 🔥 GROUP TRACKER (Catches any text to ensure group is saved) 🔥
 @bot.message_handler(content_types=['text', 'new_chat_members', 'left_chat_member'])
 def background_tracker(message):
     if message.chat.type in ['group', 'supergroup']:
@@ -596,17 +604,15 @@ def background_tracker(message):
 # 🔥 MAIN LOOP
 # ==========================================
 def keep_alive():
-    while True:
-        time.sleep(200)
+    while True: time.sleep(200)
 
 if __name__ == "__main__":
-    print(f"🔥 {SYSTEM_NAME} Online & Protected...")
+    print(f"🔥 {SYSTEM_NAME} Online & Multi-Threaded...")
     set_bot_commands() 
     threading.Thread(target=run_server, daemon=True).start()
     threading.Thread(target=keep_alive, daemon=True).start()
     while True:
-        try:
-            bot.infinity_polling(timeout=10, long_polling_timeout=5)
+        try: bot.infinity_polling(timeout=10, long_polling_timeout=5)
         except Exception as e:
-            print(f"⚠️ Bot Crashed! Restarting... Error: {e}")
+            print(f"⚠️ Bot Crashed! Error: {e}")
             time.sleep(2)
